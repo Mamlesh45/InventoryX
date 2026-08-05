@@ -2,6 +2,8 @@ package com.inventoryx.controller;
 
 import java.util.List;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -13,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.inventoryx.dto.ProductRequestDTO;
 import com.inventoryx.entity.Product;
+import com.inventoryx.payload.ApiResponse;
 import com.inventoryx.service.ProductService;
 
 import jakarta.validation.Valid;
@@ -30,26 +33,104 @@ public class ProductController {
 	}
 	
 	@PostMapping
-	public Product save(@Valid @RequestBody ProductRequestDTO dto) {
-	    return productService.saveProduct(dto);
-	}
-	@GetMapping
-	public List<Product> getAllProducts(){
-		return productService.getAllProducts();
+	public ResponseEntity<ApiResponse<Product>> save(
+	        @Valid
+	        @RequestBody ProductRequestDTO dto){
+
+	    Product product = productService.saveProduct(dto);
+
+	    ApiResponse<Product> response =
+	            new ApiResponse<>(
+
+	                    true,
+
+	                    HttpStatus.CREATED.value(),
+
+	                    "Product created successfully",
+
+	                    product
+	            );
+
+	    return new ResponseEntity<>(response,HttpStatus.CREATED);
 	}
 	
+	
+	@GetMapping
+	public ResponseEntity<ApiResponse<List<Product>>> getAllProducts(){
+
+	    List<Product> products = productService.getAllProducts();
+
+	    ApiResponse<List<Product>> response =
+	            new ApiResponse<>(
+
+	                    true,
+
+	                    HttpStatus.OK.value(),
+
+	                    "Products fetched successfully",
+
+	                    products
+	            );
+
+	    return ResponseEntity.ok(response);
+	}
+	
+	
+	
 	@GetMapping("/{id}")
-	public Product getProductById(@PathVariable Long id) {
-		return productService.getProductById(id);
+	public ResponseEntity<ApiResponse<Product>> getProductById(
+			@PathVariable Long id){
+		Product product = productService.getProductById(id);
+
+		ApiResponse<Product> response = new ApiResponse<>(
+				true,
+				HttpStatus.OK.value(),
+				"product fetched successfully",
+				product
+				);
+		return ResponseEntity.ok(response);
 	}
 	
 	@PutMapping("/{id}")
-	public Product updateProduct(@PathVariable Long id , @RequestBody Product product) {
-		return productService.updateProduct(id, product);
+	public ResponseEntity<ApiResponse<Product>> updateProduct(
+	        @PathVariable Long id,
+	        @RequestBody Product product){
+
+	    Product updatedProduct = productService.updateProduct(id, product);
+
+	    ApiResponse<Product> response =
+	            new ApiResponse<>(
+
+	                    true,
+
+	                    HttpStatus.OK.value(),
+
+	                    "Product updated successfully",
+
+	                    updatedProduct
+	            );
+
+	    return ResponseEntity.ok(response);
 	}
 	
 	@DeleteMapping("/{id}")
-	public String deleteProduct(@PathVariable Long id) {
-		return productService.deleteProduct(id);
+	public ResponseEntity<ApiResponse<String>> deleteProduct(
+	        @PathVariable Long id){
+
+	    String message = productService.deleteProduct(id);
+
+	    ApiResponse<String> response =
+	            new ApiResponse<>(
+
+	                    true,
+
+	                    HttpStatus.OK.value(),
+
+	                    message,
+
+	                    null
+	            );
+
+	    return ResponseEntity.ok(response);
 	}
 }
