@@ -11,8 +11,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.inventoryx.dto.ProductRequestDTO;
 import com.inventoryx.entity.Product;
 import com.inventoryx.service.ProductService;
+
+import jakarta.validation.Valid;
 
 
 
@@ -27,10 +30,9 @@ public class ProductController {
 	}
 	
 	@PostMapping
-	public Product saveProduct(@RequestBody Product product) {
-		return productService.saveProduct(product);
+	public Product save(@Valid @RequestBody ProductRequestDTO dto) {
+	    return productService.saveProduct(dto);
 	}
-	
 	@GetMapping
 	public List<Product> getAllProducts(){
 		return productService.getAllProducts();

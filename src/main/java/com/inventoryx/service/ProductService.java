@@ -4,7 +4,9 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 
+import com.inventoryx.dto.ProductRequestDTO;
 import com.inventoryx.entity.Product;
+import com.inventoryx.exception.ProductNotFoundException;
 import com.inventoryx.repository.ProductRepository;
 
 @Service
@@ -16,7 +18,15 @@ public class ProductService {
 		this.productRepository = productRepository;
 	}
 	
-	public Product saveProduct(Product product) {
+	public Product saveProduct(ProductRequestDTO dto) {
+
+	    Product product = new Product();
+
+	    product.setName(dto.getName());
+	    product.setSku(dto.getSku());
+	    product.setPrice(dto.getPrice());
+	    product.setQuantity(dto.getQuantity());
+
 	    return productRepository.save(product);
 	}
 	
@@ -25,7 +35,12 @@ public class ProductService {
 	}
 	
 	public Product getProductById(Long id) {
-		return productRepository.findById(id).orElse(null);
+		return productRepository
+				.findById(id)
+				.orElseThrow(() -> 
+				     new ProductNotFoundException(
+				    		 "product with ID " + id + " not found"
+				    		 ));
 	}
 	
 	
