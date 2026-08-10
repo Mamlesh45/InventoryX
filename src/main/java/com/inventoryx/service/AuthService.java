@@ -1,6 +1,8 @@
 package com.inventoryx.service;
 
+import com.inventoryx.dto.LoginResponse;
 import com.inventoryx.dto.RegisterRequest;
+import com.inventoryx.security.JwtService;
 import com.inventoryx.entity.User;
 import com.inventoryx.repository.UserRepository;
 
@@ -12,52 +14,64 @@ import org.springframework.stereotype.Service;
 @Service
 public class AuthService {
 
-    private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
-    private final AuthenticationManager authenticationManager;
+	private final UserRepository userRepository;
+	private final PasswordEncoder passwordEncoder;
+	private final AuthenticationManager authenticationManager;
+	private final JwtService jwtService;
 
-    public AuthService(UserRepository userRepository,
-                       PasswordEncoder passwordEncoder,
-                       AuthenticationManager authenticationManager) {
+	public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder,
+			AuthenticationManager authenticationManager, JwtService jwtService) {
 
-        this.userRepository = userRepository;
-        this.passwordEncoder = passwordEncoder;
-        this.authenticationManager = authenticationManager;
-    }
+		this.userRepository = userRepository;
+		this.passwordEncoder = passwordEncoder;
+		this.authenticationManager = authenticationManager;
+		this.jwtService = jwtService;
+	}
 
-    
-    public User login(String email, String password) {
+	public LoginResponse login(String email, String password) {
 
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        email,
-                        password
-                )
-        );
+	    authenticationManager.authenticate(
+	            new UsernamePasswordAuthenticationToken(
+	                    email,
+	                    password
+	            )
+	    );
 
-        return userRepository.findByEmail(email)
-                .orElseThrow(() ->
-                        new RuntimeException("User not found"));
-    }
+	    User user = userRepository.findByEmail(email)
+	            .orElseThrow(() ->
+	                    new RuntimeException("User not found"));
 
-    public User register(RegisterRequest request) {
+	    String token =
+	            jwtService.generateToken(
+	                    user.getEmail(),
+	                    user.getRole()
+	            );
 
-        if (userRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Email already registered");
-        }
+	    return new LoginResponse(
+	            "Login successful",
+	            user.getEmail(),
+	            user.getRole(),
+	            token
+	    );
+	}
 
-        User user = new User();
+	public User register(RegisterRequest request) {
 
-        user.setName(request.getName());
-        user.setEmail(request.getEmail());
+		if (userRepository.existsByEmail(request.getEmail())) {
+			throw new RuntimeException("Email already registered");
+		}
 
-        String hashedPassword =
-                passwordEncoder.encode(request.getPassword());
+		User user = new User();
 
-        user.setPassword(hashedPassword);
+		user.setName(request.getName());
+		user.setEmail(request.getEmail());
 
-        user.setRole("USER");
+		String hashedPassword = passwordEncoder.encode(request.getPassword());
 
-        return userRepository.save(user);
-    }
+		user.setPassword(hashedPassword);
+
+		user.setRole("USER");
+
+		return userRepository.save(user);
+	}
 }

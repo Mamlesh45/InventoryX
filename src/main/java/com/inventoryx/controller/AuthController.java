@@ -48,16 +48,10 @@ public class AuthController {
     public ResponseEntity<LoginResponse> login(
             @RequestBody LoginRequest request) {
 
-        User user = authService.login(
-                request.getEmail(),
-                request.getPassword()
-        );
-
         LoginResponse response =
-                new LoginResponse(
-                        "Login successful",
-                        user.getEmail(),
-                        user.getRole()
+                authService.login(
+                        request.getEmail(),
+                        request.getPassword()
                 );
 
         return ResponseEntity.ok(response);
