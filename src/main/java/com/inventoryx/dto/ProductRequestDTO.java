@@ -12,6 +12,17 @@ public class ProductRequestDTO {
 	      message = "Product name must be between 2 and 100 characters ")
 	private String name;
 	
+    private String description;
+
+	
+	public String getDescription() {
+		return description;
+	}
+
+	public void setDescription(String description) {
+		this.description = description;
+	}
+
 	@Positive(message = "Price must be greater than zero")
 	private Double price;
 	

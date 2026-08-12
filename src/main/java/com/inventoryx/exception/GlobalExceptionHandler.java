@@ -1,12 +1,14 @@
 package com.inventoryx.exception;
 
 import java.util.HashMap;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.BadCredentialsException;
 import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
-import org.springframework.security.authentication.BadCredentialsException;
+
 
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -27,6 +29,16 @@ public class GlobalExceptionHandler {
         );
     }
 
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<String> handleAccessDenied(
+            AccessDeniedException ex) {
+
+        return new ResponseEntity<>(
+                "Access Denied",
+                HttpStatus.FORBIDDEN
+        );
+    }
+    
     @ExceptionHandler(Exception.class)
     public ResponseEntity<String> handleException(Exception ex) {
 
@@ -57,15 +69,19 @@ public class GlobalExceptionHandler {
         );
     }
 
+  
+    
     @ExceptionHandler(ProductNotFoundException.class)
-    public ResponseEntity<ApiResponse> handleProductNotFound(
+    public ResponseEntity<ApiResponse<String>> handleProductNotFound(
             ProductNotFoundException ex) {
 
-        ApiResponse response = new ApiResponse(
-                false,
-                HttpStatus.NOT_FOUND.value(),
-                ex.getMessage()
-        );
+        ApiResponse<String> response =
+                new ApiResponse<>(
+                        false,
+                        HttpStatus.NOT_FOUND.value(),
+                        ex.getMessage(),
+                        null
+                );
 
         return new ResponseEntity<>(
                 response,

@@ -1,6 +1,7 @@
 package com.inventoryx.config;
 
 import org.springframework.context.annotation.Bean;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.context.annotation.Configuration;
 
 import org.springframework.security.authentication.AuthenticationManager;
@@ -23,6 +24,7 @@ import com.inventoryx.security.JwtService;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 public class SecurityConfig {
 
     @Bean
@@ -76,7 +78,6 @@ public class SecurityConfig {
 
                 .requestMatchers("/api/auth/**")
                 .permitAll()
-
                 .requestMatchers("/api/admin/**")
                 .hasRole("ADMIN")
                 .anyRequest()

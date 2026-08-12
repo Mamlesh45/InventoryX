@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
+import org.springframework.security.access.prepost.PreAuthorize;
 import com.inventoryx.dto.ProductRequestDTO;
 import com.inventoryx.entity.Product;
 import com.inventoryx.payload.ApiResponse;
@@ -33,6 +33,7 @@ public class ProductController {
 	}
 	
 	@PostMapping
+	@PreAuthorize("hasRole('ADMIN')")
 	public ResponseEntity<ApiResponse<Product>> save(
 	        @Valid
 	        @RequestBody ProductRequestDTO dto){
@@ -92,21 +93,19 @@ public class ProductController {
 	}
 	
 	@PutMapping("/{id}")
+	@PreAuthorize("hasRole('ADMIN')")
 	public ResponseEntity<ApiResponse<Product>> updateProduct(
 	        @PathVariable Long id,
-	        @RequestBody Product product){
+	        @Valid @RequestBody ProductRequestDTO dto) {
 
-	    Product updatedProduct = productService.updateProduct(id, product);
+	    Product updatedProduct =
+	            productService.updateProduct(id, dto);
 
 	    ApiResponse<Product> response =
 	            new ApiResponse<>(
-
 	                    true,
-
 	                    HttpStatus.OK.value(),
-
 	                    "Product updated successfully",
-
 	                    updatedProduct
 	            );
 
@@ -114,6 +113,7 @@ public class ProductController {
 	}
 	
 	@DeleteMapping("/{id}")
+	@PreAuthorize("hasRole('ADMIN')")
 	public ResponseEntity<ApiResponse<String>> deleteProduct(
 	        @PathVariable Long id){
 

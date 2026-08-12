@@ -44,30 +44,36 @@ public class ProductService {
 	}
 	
 	
-	public Product updateProduct(Long id , Product updatedProduct) {
-		Product product = productRepository.findById(id).orElse(null);
-		if(product == null) {
-			return null;
-		}
-		product.setName(updatedProduct.getName());
-		product.setDescription(updatedProduct.getDescription());
-		product.setSku(updatedProduct.getSku());
-		product.setPrice(updatedProduct.getPrice());
-		product.setQuantity(updatedProduct.getQuantity());
-		
-		return productRepository.save(product);
+	public Product updateProduct(Long id, ProductRequestDTO dto) {
+
+	    Product product = productRepository.findById(id)
+	            .orElseThrow(() ->
+	                    new ProductNotFoundException(
+	                            "Product not found with id: " + id
+	                    )
+	            );
+
+	    product.setName(dto.getName());
+	    product.setDescription(dto.getDescription());
+	    product.setSku(dto.getSku());
+	    product.setPrice(dto.getPrice());
+	    product.setQuantity(dto.getQuantity());
+
+	    return productRepository.save(product);
 	}
 	
 	
 	public String deleteProduct(Long id) {
-		Product product = productRepository.findById(id).orElse(null);
-		
-		if(product == null) {
-			return "Product Not Found";
-		}
-		productRepository.delete(product);
-		
-		return "Product Deleted Successfully";
+
+	    Product product = productRepository.findById(id)
+	            .orElseThrow(() ->
+	                    new ProductNotFoundException(
+	                            "Product not found with id: " + id
+	                    )
+	            );
+
+	    productRepository.delete(product);
+
+	    return "Product deleted successfully";
 	}
-	
 }
