@@ -86,7 +86,7 @@ public class ProductController {
 		ApiResponse<Product> response = new ApiResponse<>(
 				true,
 				HttpStatus.OK.value(),
-				"product fetched successfully",
+				"Product fetched successfully",
 				product
 				);
 		return ResponseEntity.ok(response);

@@ -26,6 +26,7 @@ public class ProductService {
 	    product.setSku(dto.getSku());
 	    product.setPrice(dto.getPrice());
 	    product.setQuantity(dto.getQuantity());
+	    product.setDescription(dto.getDescription());
 
 	    return productRepository.save(product);
 	}

@@ -88,4 +88,22 @@ public class GlobalExceptionHandler {
                 HttpStatus.NOT_FOUND
         );
     }
+    
+    @ExceptionHandler(InsufficientStockException.class)
+    public ResponseEntity<ApiResponse<String>> handleInsufficientStock(
+            InsufficientStockException ex) {
+
+        ApiResponse<String> response =
+                new ApiResponse<>(
+                        false,
+                        HttpStatus.BAD_REQUEST.value(),
+                        ex.getMessage(),
+                        null
+                );
+
+        return new ResponseEntity<>(
+                response,
+                HttpStatus.BAD_REQUEST
+        );
+    }
 }
