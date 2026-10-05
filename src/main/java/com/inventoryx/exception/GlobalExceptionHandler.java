@@ -1,6 +1,6 @@
 package com.inventoryx.exception;
 
-import java.util.HashMap;
+
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import java.util.Map;
@@ -19,26 +19,41 @@ import com.inventoryx.payload.ApiResponse;
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(BadCredentialsException.class)
-    public ResponseEntity<String> handleBadCredentials(
-            BadCredentialsException ex) {
+	@ExceptionHandler(BadCredentialsException.class)
+	public ResponseEntity<ApiResponse<String>> handleBadCredentials(
+	        BadCredentialsException ex) {
 
-        return new ResponseEntity<>(
-                "Invalid email or password",
-                HttpStatus.UNAUTHORIZED
-        );
-    }
+	    ApiResponse<String> response =
+	            new ApiResponse<>(
+	                    false,
+	                    HttpStatus.UNAUTHORIZED.value(),
+	                    "Invalid email or password",
+	                    null
+	            );
 
-    @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<String> handleAccessDenied(
-            AccessDeniedException ex) {
+	    return new ResponseEntity<>(
+	            response,
+	            HttpStatus.UNAUTHORIZED
+	    );
+	}
 
-        return new ResponseEntity<>(
-                "Access Denied",
-                HttpStatus.FORBIDDEN
-        );
-    }
-    
+	@ExceptionHandler(AccessDeniedException.class)
+	public ResponseEntity<ApiResponse<String>> handleAccessDenied(
+	        AccessDeniedException ex) {
+
+	    ApiResponse<String> response =
+	            new ApiResponse<>(
+	                    false,
+	                    HttpStatus.FORBIDDEN.value(),
+	                    "Access Denied",
+	                    null
+	            );
+
+	    return new ResponseEntity<>(
+	            response,
+	            HttpStatus.FORBIDDEN
+	    );
+	}
     @ExceptionHandler(Exception.class)
     public ResponseEntity<String> handleException(Exception ex) {
 
@@ -49,22 +64,28 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<Map<String, String>> handleValidationException(
+    public ResponseEntity<ApiResponse<Map<String, String>>> handleValidationException(
             MethodArgumentNotValidException ex) {
 
         Map<String, String> errors = new HashMap<>();
 
         ex.getBindingResult().getFieldErrors().forEach(error -> {
-
             errors.put(
                     error.getField(),
                     error.getDefaultMessage()
             );
-
         });
 
+        ApiResponse<Map<String, String>> response =
+                new ApiResponse<>(
+                        false,
+                        HttpStatus.BAD_REQUEST.value(),
+                        "Validation failed",
+                        errors
+                );
+
         return new ResponseEntity<>(
-                errors,
+                response,
                 HttpStatus.BAD_REQUEST
         );
     }
@@ -88,7 +109,6 @@ public class GlobalExceptionHandler {
                 HttpStatus.NOT_FOUND
         );
     }
-    
     @ExceptionHandler(InsufficientStockException.class)
     public ResponseEntity<ApiResponse<String>> handleInsufficientStock(
             InsufficientStockException ex) {
@@ -106,4 +126,14 @@ public class GlobalExceptionHandler {
                 HttpStatus.BAD_REQUEST
         );
     }
+    
+    @ExceptionHandler(WarehouseNotFoundException.class)
+    public ResponseEntity<ApiResponse> handleWarehouseNotFound(
+            WarehouseNotFoundException ex) {
+
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(new ApiResponse(ex.getMessage(), false));
+    }
+    
 }

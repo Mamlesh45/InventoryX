@@ -2,8 +2,11 @@ package com.inventoryx.controller;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -13,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.security.access.prepost.PreAuthorize;
+
 import com.inventoryx.dto.ProductRequestDTO;
 import com.inventoryx.entity.Product;
 import com.inventoryx.payload.ApiResponse;
@@ -20,117 +24,106 @@ import com.inventoryx.service.ProductService;
 
 import jakarta.validation.Valid;
 
-
-
 @RestController
 @RequestMapping("/api/products")
 public class ProductController {
 
-	private final ProductService productService;
-	
-	public ProductController(ProductService productService) {
-		this.productService = productService;
-	}
-	
-	@PostMapping
-	@PreAuthorize("hasRole('ADMIN')")
-	public ResponseEntity<ApiResponse<Product>> save(
-	        @Valid
-	        @RequestBody ProductRequestDTO dto){
+    private final ProductService productService;
 
-	    Product product = productService.saveProduct(dto);
+    public ProductController(ProductService productService) {
+        this.productService = productService;
+    }
 
-	    ApiResponse<Product> response =
-	            new ApiResponse<>(
+    @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<Product>> save(
+            @Valid
+            @RequestBody ProductRequestDTO dto) {
 
-	                    true,
+        Product product = productService.saveProduct(dto);
 
-	                    HttpStatus.CREATED.value(),
+        ApiResponse<Product> response =
+                new ApiResponse<>(
+                        true,
+                        HttpStatus.CREATED.value(),
+                        "Product created successfully",
+                        product
+                );
 
-	                    "Product created successfully",
+        return new ResponseEntity<>(response, HttpStatus.CREATED);
+    }
 
-	                    product
-	            );
+    @GetMapping
+    public ResponseEntity<ApiResponse<Page<Product>>> getAllProducts(
+            @RequestParam(required = false) String search,
+            Pageable pageable) {
 
-	    return new ResponseEntity<>(response,HttpStatus.CREATED);
-	}
-	
-	
-	@GetMapping
-	public ResponseEntity<ApiResponse<List<Product>>> getAllProducts(){
+        Page<Product> products =
+                productService.getAllProducts(search, pageable);
 
-	    List<Product> products = productService.getAllProducts();
+        ApiResponse<Page<Product>> response =
+                new ApiResponse<>(
+                        true,
+                        HttpStatus.OK.value(),
+                        "Products fetched successfully",
+                        products
+                );
 
-	    ApiResponse<List<Product>> response =
-	            new ApiResponse<>(
+        return ResponseEntity.ok(response);
+    }
 
-	                    true,
+    @GetMapping("/{id}")
+    public ResponseEntity<ApiResponse<Product>> getProductById(
+            @PathVariable Long id) {
 
-	                    HttpStatus.OK.value(),
+        Product product = productService.getProductById(id);
 
-	                    "Products fetched successfully",
+        ApiResponse<Product> response =
+                new ApiResponse<>(
+                        true,
+                        HttpStatus.OK.value(),
+                        "Product fetched successfully",
+                        product
+                );
 
-	                    products
-	            );
+        return ResponseEntity.ok(response);
+    }
 
-	    return ResponseEntity.ok(response);
-	}
-	
-	
-	
-	@GetMapping("/{id}")
-	public ResponseEntity<ApiResponse<Product>> getProductById(
-			@PathVariable Long id){
-		Product product = productService.getProductById(id);
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<Product>> updateProduct(
+            @PathVariable Long id,
+            @Valid @RequestBody ProductRequestDTO dto) {
 
-		ApiResponse<Product> response = new ApiResponse<>(
-				true,
-				HttpStatus.OK.value(),
-				"Product fetched successfully",
-				product
-				);
-		return ResponseEntity.ok(response);
-	}
-	
-	@PutMapping("/{id}")
-	@PreAuthorize("hasRole('ADMIN')")
-	public ResponseEntity<ApiResponse<Product>> updateProduct(
-	        @PathVariable Long id,
-	        @Valid @RequestBody ProductRequestDTO dto) {
+        Product updatedProduct =
+                productService.updateProduct(id, dto);
 
-	    Product updatedProduct =
-	            productService.updateProduct(id, dto);
+        ApiResponse<Product> response =
+                new ApiResponse<>(
+                        true,
+                        HttpStatus.OK.value(),
+                        "Product updated successfully",
+                        updatedProduct
+                );
 
-	    ApiResponse<Product> response =
-	            new ApiResponse<>(
-	                    true,
-	                    HttpStatus.OK.value(),
-	                    "Product updated successfully",
-	                    updatedProduct
-	            );
+        return ResponseEntity.ok(response);
+    }
 
-	    return ResponseEntity.ok(response);
-	}
-	
-	@DeleteMapping("/{id}")
-	@PreAuthorize("hasRole('ADMIN')")
-	public ResponseEntity<ApiResponse<String>> deleteProduct(
-	        @PathVariable Long id){
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<String>> deleteProduct(
+            @PathVariable Long id) {
 
-	    String message = productService.deleteProduct(id);
+        String message = productService.deleteProduct(id);
 
-	    ApiResponse<String> response =
-	            new ApiResponse<>(
+        ApiResponse<String> response =
+                new ApiResponse<>(
+                        true,
+                        HttpStatus.OK.value(),
+                        message,
+                        null
+                );
 
-	                    true,
-
-	                    HttpStatus.OK.value(),
-
-	                    message,
-
-	                    null
-	            );
-
-	    return ResponseEntity.ok(response);
-	}
+        return ResponseEntity.ok(response);
+    }
 }

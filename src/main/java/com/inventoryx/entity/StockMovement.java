@@ -25,10 +25,15 @@ public class StockMovement {
 
     private String reason;
 
-    @Column(nullable = false)
+    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     public StockMovement() {
+    }
+    
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
     }
 
     public Long getId() {

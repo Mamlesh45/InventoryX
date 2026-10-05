@@ -2,6 +2,8 @@ package com.inventoryx.service;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import com.inventoryx.dto.ProductRequestDTO;
@@ -12,69 +14,80 @@ import com.inventoryx.repository.ProductRepository;
 @Service
 public class ProductService {
 
-	private final ProductRepository productRepository;
-	
-	public ProductService(ProductRepository productRepository) {
-		this.productRepository = productRepository;
-	}
-	
-	public Product saveProduct(ProductRequestDTO dto) {
+    private final ProductRepository productRepository;
 
-	    Product product = new Product();
+    public ProductService(ProductRepository productRepository) {
+        this.productRepository = productRepository;
+    }
 
-	    product.setName(dto.getName());
-	    product.setSku(dto.getSku());
-	    product.setPrice(dto.getPrice());
-	    product.setQuantity(dto.getQuantity());
-	    product.setDescription(dto.getDescription());
+    public Product saveProduct(ProductRequestDTO dto) {
 
-	    return productRepository.save(product);
-	}
-	
-	public List<Product> getAllProducts(){
-		return productRepository.findAll();
-	}
-	
-	public Product getProductById(Long id) {
-		return productRepository
-				.findById(id)
-				.orElseThrow(() -> 
-				     new ProductNotFoundException(
-				    		 "product with ID " + id + " not found"
-				    		 ));
-	}
-	
-	
-	public Product updateProduct(Long id, ProductRequestDTO dto) {
+        Product product = new Product();
 
-	    Product product = productRepository.findById(id)
-	            .orElseThrow(() ->
-	                    new ProductNotFoundException(
-	                            "Product not found with id: " + id
-	                    )
-	            );
+        product.setName(dto.getName());
+        product.setSku(dto.getSku());
+        product.setPrice(dto.getPrice());
+        product.setQuantity(dto.getQuantity());
+        product.setDescription(dto.getDescription());
 
-	    product.setName(dto.getName());
-	    product.setDescription(dto.getDescription());
-	    product.setSku(dto.getSku());
-	    product.setPrice(dto.getPrice());
-	    product.setQuantity(dto.getQuantity());
+        return productRepository.save(product);
+    }
 
-	    return productRepository.save(product);
-	}
-	
-	
-	public String deleteProduct(Long id) {
+    
+    public List<Product> getAllProducts() {
+        return productRepository.findAll();
+    }
 
-	    Product product = productRepository.findById(id)
-	            .orElseThrow(() ->
-	                    new ProductNotFoundException(
-	                            "Product not found with id: " + id
-	                    )
-	            );
+    public Page<Product> getAllProducts(
+            String search,
+            Pageable pageable) {
 
-	    productRepository.delete(product);
+        if (search == null || search.trim().isEmpty()) {
+            return productRepository.findAll(pageable);
+        }
 
-	    return "Product deleted successfully";
-	}
+        return productRepository
+                .findByNameContainingIgnoreCase(search.trim(), pageable);
+    }
+    public Product getProductById(Long id) {
+
+        return productRepository
+                .findById(id)
+                .orElseThrow(() ->
+                        new ProductNotFoundException(
+                                "product with ID " + id + " not found"
+                        ));
+    }
+
+    public Product updateProduct(Long id, ProductRequestDTO dto) {
+
+        Product product = productRepository.findById(id)
+                .orElseThrow(() ->
+                        new ProductNotFoundException(
+                                "Product not found with id: " + id
+                        )
+                );
+
+        product.setName(dto.getName());
+        product.setDescription(dto.getDescription());
+        product.setSku(dto.getSku());
+        product.setPrice(dto.getPrice());
+        product.setQuantity(dto.getQuantity());
+
+        return productRepository.save(product);
+    }
+
+    public String deleteProduct(Long id) {
+
+        Product product = productRepository.findById(id)
+                .orElseThrow(() ->
+                        new ProductNotFoundException(
+                                "Product not found with id: " + id
+                        )
+                );
+
+        productRepository.delete(product);
+
+        return "Product deleted successfully";
+    }
 }
