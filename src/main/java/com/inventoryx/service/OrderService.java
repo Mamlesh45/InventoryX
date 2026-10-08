@@ -3,6 +3,8 @@ package com.inventoryx.service;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -59,16 +61,44 @@ public class OrderService {
         this.stockMovementRepository = stockMovementRepository;
     }
 
+ 
     @Transactional
     public OrderResponseDTO createOrder(
             Long userId,
             OrderRequestDTO request) {
 
-        // 1. Find User
-        User user = userRepository.findById(userId)
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "User not found with id: " + userId));
+        // 1. Get authenticated user
+        User currentUser = getCurrentUser();
+
+        Authentication authentication =
+                SecurityContextHolder
+                        .getContext()
+                        .getAuthentication();
+
+        boolean isAdmin =
+                authentication.getAuthorities()
+                        .stream()
+                        .anyMatch(
+                                authority ->
+                                        authority.getAuthority()
+                                                .equals("ROLE_ADMIN")
+                        );
+
+        User user;
+
+        // ADMIN can create order for any user
+        if (isAdmin && userId != null) {
+
+            user = userRepository.findById(userId)
+                    .orElseThrow(() ->
+                            new RuntimeException(
+                                    "User not found with id: " + userId));
+
+        } else {
+
+            // USER can only create order for themselves
+            user = currentUser;
+        }
 
         // 2. Find Warehouse
         Warehouse warehouse = warehouseRepository
@@ -80,6 +110,7 @@ public class OrderService {
 
         // 3. Make sure warehouse is active
         if (!Boolean.TRUE.equals(warehouse.getActive())) {
+
             throw new IllegalArgumentException(
                     "Cannot create order from inactive warehouse");
         }
@@ -92,21 +123,27 @@ public class OrderService {
         order.setStatus(OrderStatus.PENDING);
         order.setTotalAmount(0.0);
 
-        Order savedOrder = orderRepository.save(order);
+        Order savedOrder =
+                orderRepository.save(order);
 
         double totalAmount = 0.0;
 
-        List<OrderItem> orderItems = new ArrayList<>();
+        List<OrderItem> orderItems =
+                new ArrayList<>();
 
         // 5. Process every requested item
-        for (OrderItemRequestDTO itemRequest : request.getItems()) {
+        for (OrderItemRequestDTO itemRequest :
+                request.getItems()) {
 
-            Product product = productRepository
-                    .findById(itemRequest.getProductId())
-                    .orElseThrow(() ->
-                            new ProductNotFoundException(
-                                    "Product not found with id: "
-                                            + itemRequest.getProductId()));
+            Product product =
+                    productRepository
+                            .findById(
+                                    itemRequest.getProductId())
+                            .orElseThrow(() ->
+                                    new ProductNotFoundException(
+                                            "Product not found with id: "
+                                                    + itemRequest
+                                                            .getProductId()));
 
             // 6. Find warehouse-specific stock
             WarehouseStock warehouseStock =
@@ -135,7 +172,8 @@ public class OrderService {
             }
 
             // 8. Product price
-            Double price = product.getPrice();
+            Double price =
+                    product.getPrice();
 
             // 9. Calculate subtotal
             Double subtotal =
@@ -146,25 +184,32 @@ public class OrderService {
                     warehouseStock.getQuantity()
                             - itemRequest.getQuantity());
 
-            warehouseStockRepository.save(warehouseStock);
+            warehouseStockRepository
+                    .save(warehouseStock);
 
             // 11. Create stock movement OUT
-            StockMovement movement = new StockMovement();
+            StockMovement movement =
+                    new StockMovement();
 
             movement.setProduct(product);
-            movement.setType(StockMovementType.OUT);
-            movement.setQuantity(itemRequest.getQuantity());
+            movement.setType(
+                    StockMovementType.OUT);
+            movement.setQuantity(
+                    itemRequest.getQuantity());
             movement.setReason(
                     "Order stock deduction");
 
-            stockMovementRepository.save(movement);
+            stockMovementRepository
+                    .save(movement);
 
             // 12. Create OrderItem
-            OrderItem orderItem = new OrderItem();
+            OrderItem orderItem =
+                    new OrderItem();
 
             orderItem.setOrder(savedOrder);
             orderItem.setProduct(product);
-            orderItem.setQuantity(itemRequest.getQuantity());
+            orderItem.setQuantity(
+                    itemRequest.getQuantity());
             orderItem.setPrice(price);
             orderItem.setSubtotal(subtotal);
 
@@ -176,13 +221,16 @@ public class OrderService {
 
         // 14. Save OrderItems
         List<OrderItem> savedOrderItems =
-                orderItemRepository.saveAll(orderItems);
+                orderItemRepository
+                        .saveAll(orderItems);
 
         // 15. Set total
-        savedOrder.setTotalAmount(totalAmount);
+        savedOrder.setTotalAmount(
+                totalAmount);
 
         // 16. Confirm order
-        savedOrder.setStatus(OrderStatus.CONFIRMED);
+        savedOrder.setStatus(
+                OrderStatus.CONFIRMED);
 
         Order finalOrder =
                 orderRepository.save(savedOrder);
@@ -193,29 +241,84 @@ public class OrderService {
                 savedOrderItems);
     }
 
-    // GET ORDER BY ID
     public OrderResponseDTO getOrderById(Long id) {
 
-        Order order = orderRepository.findById(id)
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "Order not found with id: " + id));
+        Order order =
+                orderRepository.findById(id)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Order not found with id: "
+                                                + id));
+
+        Authentication authentication =
+                SecurityContextHolder
+                        .getContext()
+                        .getAuthentication();
+
+        boolean isAdmin =
+                authentication.getAuthorities()
+                        .stream()
+                        .anyMatch(
+                                authority ->
+                                        authority.getAuthority()
+                                                .equals("ROLE_ADMIN")
+                        );
+
+        if (!isAdmin) {
+
+            User currentUser =
+                    getCurrentUser();
+
+            if (!order.getUser()
+                    .getId()
+                    .equals(currentUser.getId())) {
+
+                throw new SecurityException(
+                        "You are not allowed to access this order");
+            }
+        }
 
         List<OrderItem> items =
-                orderItemRepository.findByOrder(order);
+                orderItemRepository
+                        .findByOrder(order);
 
-        return mapToResponseDTO(order, items);
+        return mapToResponseDTO(
+                order,
+                items);
     }
 
-    // GET USER ORDERS
     public List<OrderResponseDTO> getOrdersByUser(
             Long userId) {
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "User not found with id: "
-                                        + userId));
+        Authentication authentication =
+                SecurityContextHolder
+                        .getContext()
+                        .getAuthentication();
+
+        boolean isAdmin =
+                authentication.getAuthorities()
+                        .stream()
+                        .anyMatch(
+                                authority ->
+                                        authority.getAuthority()
+                                                .equals("ROLE_ADMIN")
+                        );
+
+        User user;
+
+        if (isAdmin) {
+
+            user = userRepository
+                    .findById(userId)
+                    .orElseThrow(() ->
+                            new RuntimeException(
+                                    "User not found with id: "
+                                            + userId));
+
+        } else {
+
+            user = getCurrentUser();
+        }
 
         List<Order> orders =
                 orderRepository.findByUser(user);
@@ -226,26 +329,30 @@ public class OrderService {
         for (Order order : orders) {
 
             List<OrderItem> items =
-                    orderItemRepository.findByOrder(order);
+                    orderItemRepository
+                            .findByOrder(order);
 
             responses.add(
-                    mapToResponseDTO(order, items));
+                    mapToResponseDTO(
+                            order,
+                            items));
         }
 
         return responses;
     }
 
-    // UPDATE ORDER STATUS
+ 
     @Transactional
     public OrderResponseDTO updateOrderStatus(
             Long id,
             OrderStatus newStatus) {
 
-        Order order = orderRepository.findById(id)
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "Order not found with id: "
-                                        + id));
+        Order order =
+                orderRepository.findById(id)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Order not found with id: "
+                                                + id));
 
         order.setStatus(newStatus);
 
@@ -253,39 +360,70 @@ public class OrderService {
                 orderRepository.save(order);
 
         List<OrderItem> items =
-                orderItemRepository.findByOrder(updatedOrder);
+                orderItemRepository
+                        .findByOrder(updatedOrder);
 
         return mapToResponseDTO(
                 updatedOrder,
                 items);
     }
 
-    // CANCEL ORDER
     @Transactional
     public OrderResponseDTO cancelOrder(Long id) {
 
-        Order order = orderRepository.findById(id)
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "Order not found with id: "
-                                        + id));
+        Order order =
+                orderRepository.findById(id)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Order not found with id: "
+                                                + id));
 
-        if (order.getStatus() == OrderStatus.DELIVERED) {
+        Authentication authentication =
+                SecurityContextHolder
+                        .getContext()
+                        .getAuthentication();
+
+        boolean isAdmin =
+                authentication.getAuthorities()
+                        .stream()
+                        .anyMatch(
+                                authority ->
+                                        authority.getAuthority()
+                                                .equals("ROLE_ADMIN")
+                        );
+
+        if (!isAdmin) {
+
+            User currentUser =
+                    getCurrentUser();
+
+            if (!order.getUser()
+                    .getId()
+                    .equals(currentUser.getId())) {
+
+                throw new SecurityException(
+                        "You are not allowed to cancel this order");
+            }
+        }
+
+        if (order.getStatus()
+                == OrderStatus.DELIVERED) {
 
             throw new IllegalArgumentException(
                     "Delivered order cannot be cancelled");
         }
 
-        if (order.getStatus() == OrderStatus.CANCELLED) {
+        if (order.getStatus()
+                == OrderStatus.CANCELLED) {
 
             throw new IllegalArgumentException(
                     "Order is already cancelled");
         }
 
         List<OrderItem> items =
-                orderItemRepository.findByOrder(order);
+                orderItemRepository
+                        .findByOrder(order);
 
-        // Restore stock
         for (OrderItem item : items) {
 
             WarehouseStock warehouseStock =
@@ -301,23 +439,30 @@ public class OrderService {
                     warehouseStock.getQuantity()
                             + item.getQuantity());
 
-            warehouseStockRepository.save(
-                    warehouseStock);
+            warehouseStockRepository
+                    .save(warehouseStock);
 
-            // Record stock movement IN
             StockMovement movement =
                     new StockMovement();
 
-            movement.setProduct(item.getProduct());
-            movement.setType(StockMovementType.IN);
-            movement.setQuantity(item.getQuantity());
+            movement.setProduct(
+                    item.getProduct());
+
+            movement.setType(
+                    StockMovementType.IN);
+
+            movement.setQuantity(
+                    item.getQuantity());
+
             movement.setReason(
                     "Order cancellation - stock restored");
 
-            stockMovementRepository.save(movement);
+            stockMovementRepository
+                    .save(movement);
         }
 
-        order.setStatus(OrderStatus.CANCELLED);
+        order.setStatus(
+                OrderStatus.CANCELLED);
 
         Order cancelledOrder =
                 orderRepository.save(order);
@@ -327,7 +472,23 @@ public class OrderService {
                 items);
     }
 
-    // ENTITY → RESPONSE DTO
+    private User getCurrentUser() {
+
+        Authentication authentication =
+                SecurityContextHolder
+                        .getContext()
+                        .getAuthentication();
+
+        String email =
+                authentication.getName();
+
+        return userRepository
+                .findByEmail(email)
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Authenticated user not found"));
+    }
+
     private OrderResponseDTO mapToResponseDTO(
             Order order,
             List<OrderItem> items) {
@@ -335,7 +496,8 @@ public class OrderService {
         OrderResponseDTO response =
                 new OrderResponseDTO();
 
-        response.setId(order.getId());
+        response.setId(
+                order.getId());
 
         response.setUserId(
                 order.getUser().getId());
@@ -384,10 +546,12 @@ public class OrderService {
             itemResponse.setSubtotal(
                     item.getSubtotal());
 
-            itemResponses.add(itemResponse);
+            itemResponses.add(
+                    itemResponse);
         }
 
-        response.setItems(itemResponses);
+        response.setItems(
+                itemResponses);
 
         return response;
     }
